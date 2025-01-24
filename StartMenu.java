@@ -6,11 +6,14 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
+import static de.eternal5.gui.ScoreUtilities.getCurrentScore;
+import static de.eternal5.gui.Utilities.generateRandomString;
 import static de.eternal5.gui.Utilities.showError;
 
 public class StartMenu {
     private SnakeGame snakeGame;
     public static String username;
+    public static double speed;
 
     public StartMenu(SnakeGame snakeGame) {
         this.snakeGame = snakeGame;
@@ -22,14 +25,20 @@ public class StartMenu {
         stage.setTitle("Snake Game - Startmenü");
 
         // GUI-Elemente
+
         Label usernameLabel = new Label("Benutzername:");
         TextField usernameField = new TextField();
-        usernameField.setPromptText("Created by: ETERNAL5/Julian Schwendt");
+
         Label snakeColorLabel = new Label("Wähle die Schlange Farbe:");
         ColorPicker snakeColorPicker = new ColorPicker(Color.GREEN);
 
         Label backgroundColorLabel = new Label("Wähle den Hintergrund Farbe:");
         ColorPicker backgroundColorPicker = new ColorPicker(Color.WHITE);
+
+        Label highScoreLabel = new Label("HighScore:");
+        TextField highScoreField = new TextField();
+        highScoreField.setEditable(false); // HighScore nur zur Anzeige, nicht bearbeitbar
+        highScoreField.setText(getCurrentScore()); // Beispielwert; kann durch den tatsächlichen Highscore ersetzt werden
 
         // Slider für die Geschwindigkeit
         Label speedLabel = new Label("Geschwindigkeit der Schlange (ms):");
@@ -49,9 +58,8 @@ public class StartMenu {
         speedField.setOnAction(e -> {
             try {
                 int speed = Integer.parseInt(speedField.getText());
-                if (speed >= 1) {  // Beliebige Zahl, mindestens 1
-                    // Slider wird angepasst, bleibt aber bei seinem normalen Bereich
-                    speedSlider.setValue(Math.max(50, Math.min(300, speed)));  // Nur Slider-Bereich ändern
+                if (speed >= 1) {
+                    speedSlider.setValue(Math.max(50, Math.min(300, speed)));
                 } else {
                     showError("Bitte eine positive Zahl für die Geschwindigkeit eingeben.");
                 }
@@ -63,11 +71,14 @@ public class StartMenu {
         Button startButton = new Button("Spiel Starten");
         startButton.setOnAction(e -> {
             String playerName = usernameField.getText();
-            username = playerName;
-            System.out.println(username);
+            if(usernameField.getText().isBlank()){
+                username = generateRandomString(6);
+            } else {
+                username = playerName;
+            }
             Color snakeColor = snakeColorPicker.getValue();
             Color backgroundColor = backgroundColorPicker.getValue();
-            double speed = Double.parseDouble(speedField.getText());  // Geschwindigkeit aus dem Textfeld
+            speed = Double.parseDouble(speedField.getText());
             snakeGame.startGame(snakeColor, backgroundColor, playerName, speed);
             stage.close();
         });
@@ -82,13 +93,15 @@ public class StartMenu {
         grid.add(snakeColorPicker, 1, 1);
         grid.add(backgroundColorLabel, 0, 2);
         grid.add(backgroundColorPicker, 1, 2);
-        grid.add(speedLabel, 0, 3);
-        grid.add(speedSlider, 1, 3);
-        grid.add(speedField, 2, 3);  // Füge das Textfeld für die Geschwindigkeit hinzu
-        grid.add(startButton, 0, 4, 2, 1);
+        grid.add(highScoreLabel, 0, 3);
+        grid.add(highScoreField, 1, 3);
+        grid.add(speedLabel, 0, 4);
+        grid.add(speedSlider, 1, 4);
+        grid.add(speedField, 2, 4);
+        grid.add(startButton, 0, 5, 2, 1);
 
         // Szene und Darstellung
-        Scene scene = new Scene(grid, 450, 250);  // Szene Größe angepasst
+        Scene scene = new Scene(grid, 450, 300);  // Szene Größe angepasst
         stage.setScene(scene);
         stage.show();
     }

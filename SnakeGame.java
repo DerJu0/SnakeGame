@@ -20,17 +20,24 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
+import static de.eternal5.gui.StartMenu.speed;
 import static de.eternal5.gui.StartMenu.username;
 import static de.eternal5.gui.ScoreUtilities.*;
+import static de.eternal5.gui.allgmein.log;
+import static de.eternal5.gui.powerups.*;
 
 
 public class SnakeGame extends Application {
 
     // Spielgrößen
-    private static final int WIDTH = 600;
-    private static final int HEIGHT = 400;
+    private static final int WIDTH = 600; //Breite der "App"
+    private static final int HEIGHT = 400; //Höhe der "App"
     private static final int BLOCK_SIZE = 20;
-
+    //Score
+    public static int highScore;
+    public static String playerName;
+    public static String highScoreName;
+    public static int score;
 
     // Bewegungsrichtung
     private enum Direction {
@@ -40,7 +47,7 @@ public class SnakeGame extends Application {
     private Direction direction = Direction.RIGHT;
     private boolean gameOver = false;
 
-    // Schlange und Futter
+    // Schlange und "Futter"
     private List<int[]> snake = new ArrayList<>();
     private int[] food = new int[2];
 
@@ -54,10 +61,10 @@ public class SnakeGame extends Application {
     // Timeline für die Animation
     private Timeline timeline;
 
+    //Erstellung, Stage & die Scene
     public static Stage primaryStage;
     private Scene gameScene;
     private Canvas canvas;
-
 
     public static void main(String[] args) {
         launch(args);
@@ -66,14 +73,14 @@ public class SnakeGame extends Application {
     @Override
     public void start(Stage stage) {
         this.primaryStage = stage;
-        new StartMenu(this); // Starte das Startmenü
+        new StartMenu(this); // Startmenü
     }
 
-    // Starte das Spiel mit den übergebenen Farben, dem Benutzernamen und der Geschwindigkeit
+    // Starte das Spiel mit der Gewählten Farbe, dem Benutzernamen und der Geschwindigkeit
     public void startGame(Color snakeColor, Color backgroundColor, String playerName, double speedInput) {
         this.snakeColor = snakeColor;
         this.backgroundColor = backgroundColor;
-        playerName = playerName;
+        playerName = this.playerName;
 
         // Hier invertieren wir die Geschwindigkeit, so dass höhere Werte eine schnellere Bewegung ergeben
         double speed = 3000 / speedInput;  // Je höher speedInput, desto schneller die Schlange
@@ -85,7 +92,7 @@ public class SnakeGame extends Application {
         canvas = new Canvas(WIDTH, HEIGHT);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        // Initialisiere die Schlange
+        // Schlange
         snake.clear();
         snake.add(new int[]{WIDTH / (2 * BLOCK_SIZE), HEIGHT / (2 * BLOCK_SIZE)});
         direction = Direction.RIGHT;
@@ -98,17 +105,35 @@ public class SnakeGame extends Application {
         timeline.setCycleCount(Timeline.INDEFINITE);
         timeline.play();
 
+        // Neue Methode zum Aktualisieren der Geschwindigkeit
+        /*timeline.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
+            if (newSpeed != speed) {  // Wenn eine neue Geschwindigkeit eingestellt wurde
+                speed = New_speed;    // Geschwindigkeit aktualisieren
+                updateGameSpeed(New_speed); // Dynamisch die Timeline-Geschwindigkeit anpassen
+            }
+        });*/
+
         // Szene und Eingabesteuerung
         gameScene = new Scene(new StackPane(canvas), WIDTH, HEIGHT);
         gameScene.addEventFilter(KeyEvent.KEY_PRESSED, this::processInput);
 
-        // Setze die Szene auf der Bühne
+        // Setze die Szene
         primaryStage.setScene(gameScene);
         primaryStage.setTitle("Snake Game");
         primaryStage.show();
     }
+    // Methode in der Klasse SnakeGame hinzufügen
+    public void updateGameSpeed(SnakeGame snakeGame, double newSpeed) {
+        if (timeline != null) {
+            timeline.stop(); // Stoppe die aktuelle Timeline
+            timeline.getKeyFrames().clear(); // Entferne alte KeyFrames
+            timeline.getKeyFrames().add(new KeyFrame(Duration.millis(newSpeed), e -> run(canvas.getGraphicsContext2D())));
+            timeline.play(); // Starte die Timeline mit der neuen Geschwindigkeit
+        }
+    }
 
-    // Verarbeitung der Tasten zur Steuerung
+
+    // Tasten zur Steuerung
     private void processInput(KeyEvent event) {
         if (event.getCode() == KeyCode.UP && direction != Direction.DOWN) {
             direction = Direction.UP;
@@ -120,14 +145,24 @@ public class SnakeGame extends Application {
             direction = Direction.RIGHT;
         } else if (event.getCode() == KeyCode.ESCAPE) { // Mit ESC die Anwendung schließen
             primaryStage.close();
+        } else if(event.getCode() == KeyCode.K){
+            score +=500;
+        } else if(event.getCode() == KeyCode.PLUS){
+            log(String.valueOf(speed));
+            PlusSpeedUpgrade( this, speed-20);
+            log("+");
+        } else if(event.getCode() == KeyCode.MINUS){
+            MinusSpeedDownUpgrade(this, 30);
+            log("-");
         }
     }
 
-    // Logik des Spiels
+    // Logik
     private void run(GraphicsContext gc) {
         if (gameOver) {
             timeline.stop();
             displayGameOverAlert();
+            saveScore(username);
             return;
         }
 
@@ -222,16 +257,15 @@ public class SnakeGame extends Application {
 
     private void displayGameOverAlert() {
         // Verwende Platform.runLater, um den Dialog sicher zu zeigen
+
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Game Over");
             alert.setHeaderText("Du hast verloren!");
             alert.setContentText("Dein Score: " + score + "\nHighscore: " + highScore + " von " + highScoreName);
-            System.out.println(username);
-            saveScore(username);
 
             ButtonType restartButton = new ButtonType("Neustarten");
-            ButtonType closeButton = new ButtonType("Schließen");
+            ButtonType closeButton = new ButtonType("Beenden :(");
 
             // Füge die Optionen hinzu
             alert.getButtonTypes().setAll(restartButton, closeButton);
@@ -244,6 +278,9 @@ public class SnakeGame extends Application {
                 primaryStage.close();  // Anwendung beenden
             }
         });
+        if (score > highScore) {
+            saveScore(username);
+        }
     }
     public void returnToStartMenu() {
         primaryStage.close();
